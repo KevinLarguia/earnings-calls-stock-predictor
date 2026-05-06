@@ -16,6 +16,8 @@ Proyecto de machine learning que predice si una acción va a subir más del 3% e
 
 > El Buy & Hold altísimo refleja que el universo es tech puro (NVDA, TSLA, AMD, META…) durante 2019-2024 — uno de los ciclos alcistas más fuertes de la historia. El backtesting compone las 228 operaciones secuencialmente, lo que amplifica los retornos absolutos. El modelo mejora el win rate de 21% a 47% pero no supera al mercado en retorno absoluto, un resultado honesto y común en predicción financiera.
 
+<img width="4790" height="397" alt="outpu1" src="https://github.com/user-attachments/assets/2ad95de9-7a1d-4410-ab9d-6748843841d3" />
+
 ---
 
 ## Evolución del proyecto — v1 → v2 → v3
@@ -55,6 +57,8 @@ Proyecto de machine learning que predice si una acción va a subir más del 3% e
 
 **Por qué mejoró el win rate pero no el retorno:** bajar el umbral a 0.30 para hacer más apuestas diluyó la selectividad. El modelo apostaba en el 83% de los casos, perdiendo la capacidad de filtrar.
 
+<img width="1790" height="590" alt="output4" src="https://github.com/user-attachments/assets/7f069632-2ddb-488d-858a-b553d9a47757" />
+
 ---
 
 ### v3 — Nuevas features + target 5 días + Ensemble
@@ -90,6 +94,54 @@ Este es el resultado honesto más importante del proyecto. Hay dos razones estru
 
 ---
 
+## Dataset
+
+- **228 earnings calls**, 12 empresas, 2019-2024
+- **12 empresas:** AAPL, MSFT, GOOGL, META, NFLX, TSLA, AMZN, NVDA, AMD, JPM, V, MA
+- **86 transcripciones** disponibles (38% de cobertura); el resto recibe features NLP = 0
+- **Target:** retorno a 5 días hábiles > 3% (PEAD — Post-Earnings Announcement Drift)
+- **Distribución:** 89 SUBE (39%) · 139 BAJA (61%)
+
+<img width="826" height="396" alt="output5" src="https://github.com/user-attachments/assets/dd02fcae-ce46-4264-8090-0c9643a441fd" />
+
+---
+
+## Features (25 en v3)
+
+| Grupo | Features | Fuente |
+|---|---|---|
+| **EPS** | `eps_surprise_pct`, `eps_surprise_abs`, `eps_surprise_trend`, `eps_surprise_zscore` | yfinance |
+| **Precio** | `momentum_5d`, `momentum_20d`, `volatility_20d`, `momentum_vol_ratio`, `momentum_agreement` | yfinance |
+| **FinBERT** | `score_positivo`, `score_negativo`, `score_neutral`, `polaridad`, `finbert_confidence` | ProsusAI/finbert |
+| **Keywords** | `kw_positivos`, `kw_negativos`, `kw_ratio`, `kw_cat_enc` | análisis manual |
+| **NLP texto** | `uncertainty_score`, `forward_guidance_score`, `text_length_log`, `question_density`, `negative_words_score` | texto crudo |
+| **Interacción** | `sent_momentum_align`, `tiene_transcripcion` | derivadas |
+
+**El predictor dominante** es `eps_surprise_pct`: cuando una empresa supera las estimativas de EPS, el precio tiende a subir. SUBE promedio: +35.9% de sorpresa. BAJA promedio: +4.4%.
+
+<img width="1489" height="390" alt="output2" src="https://github.com/user-attachments/assets/43fb1e10-2ac2-417c-b555-aed268ecb2e7" />
+
+<img width="890" height="590" alt="output3" src="https://github.com/user-attachments/assets/666d85b7-fb3e-4d1d-a365-4b9e22899ad2" />
+
+---
+
+## Modelo
+
+**Ensemble (soft voting):**
+- **XGBoost** con `scale_pos_weight` para manejar el desbalance de clases (1.56:1)
+- **LightGBM** con el mismo balanceo
+- Promedio de probabilidades de ambos modelos
+
+**Validación:** StratifiedKFold 5-fold, predicciones OOS con `cross_val_predict` (sin data leakage).
+
+**Umbral:** sweep sobre [0.30, 0.85] usando retorno acumulado a 5 días como criterio. Óptimo = 0.40.
+
+<img width="1790" height="590" alt="output7" src="https://github.com/user-attachments/assets/9fac5b53-6d2f-486f-850e-e96a6edabac9" />
+
+<img width="1289" height="390" alt="output6" src="https://github.com/user-attachments/assets/f2a9d2b8-a5fc-44ee-8e11-10606cc063f6" />
+
+---
+
 ## Arquitectura del proyecto
 
 ```
@@ -119,34 +171,6 @@ outputs/
 
 ---
 
-## Features (25 en v3)
-
-| Grupo | Features | Fuente |
-|---|---|---|
-| **EPS** | `eps_surprise_pct`, `eps_surprise_abs`, `eps_surprise_trend`, `eps_surprise_zscore` | yfinance |
-| **Precio** | `momentum_5d`, `momentum_20d`, `volatility_20d`, `momentum_vol_ratio`, `momentum_agreement` | yfinance |
-| **FinBERT** | `score_positivo`, `score_negativo`, `score_neutral`, `polaridad`, `finbert_confidence` | ProsusAI/finbert |
-| **Keywords** | `kw_positivos`, `kw_negativos`, `kw_ratio`, `kw_cat_enc` | análisis manual |
-| **NLP texto** | `uncertainty_score`, `forward_guidance_score`, `text_length_log`, `question_density`, `negative_words_score` | texto crudo |
-| **Interacción** | `sent_momentum_align`, `tiene_transcripcion` | derivadas |
-
-**El predictor dominante** es `eps_surprise_pct`: cuando una empresa supera las estimativas de EPS, el precio tiende a subir. SUBE promedio: +35.9% de sorpresa. BAJA promedio: +4.4%.
-
----
-
-## Modelo
-
-**Ensemble (soft voting):**
-- **XGBoost** con `scale_pos_weight` para manejar el desbalance de clases (1.56:1)
-- **LightGBM** con el mismo balanceo
-- Promedio de probabilidades de ambos modelos
-
-**Validación:** StratifiedKFold 5-fold, predicciones OOS con `cross_val_predict` (sin data leakage).
-
-**Umbral:** sweep sobre [0.30, 0.85] usando retorno acumulado a 5 días como criterio. Óptimo = 0.40.
-
----
-
 ## Stack tecnológico
 
 - **FinBERT** (`ProsusAI/finbert`) — BERT preentrenado en texto financiero
@@ -156,16 +180,6 @@ outputs/
 - **imbalanced-learn** — SMOTE para regresión logística
 - **HuggingFace datasets** — Transcripciones (`lamini/earnings-calls-qa`)
 - **pandas · numpy · matplotlib**
-
----
-
-## Dataset
-
-- **228 earnings calls**, 12 empresas, 2019-2024
-- **12 empresas:** AAPL, MSFT, GOOGL, META, NFLX, TSLA, AMZN, NVDA, AMD, JPM, V, MA
-- **86 transcripciones** disponibles (38% de cobertura); el resto recibe features NLP = 0
-- **Target:** retorno a 5 días hábiles > 3% (PEAD — Post-Earnings Announcement Drift)
-- **Distribución:** 89 SUBE (39%) · 139 BAJA (61%)
 
 ---
 
