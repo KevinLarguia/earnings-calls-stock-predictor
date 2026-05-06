@@ -1,0 +1,16 @@
+yfinance
+lxml
+pandas
+numpy
+scikit-learn
+xgboost
+lightgbm
+imbalanced-learn
+transformers
+torch
+datasets
+matplotlib
+joblib
+streamlit
+jupyter
+ipykernel
