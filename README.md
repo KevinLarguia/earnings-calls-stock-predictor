@@ -19,7 +19,7 @@ Proyecto de machine learning que predice si una acción va a subir más del 3% e
 
 <img width="4790" height="397" alt="outpu1" src="https://github.com/user-attachments/assets/2ad95de9-7a1d-4410-ab9d-6748843841d3" />
 
----
+-----
 
 ## Evolución del proyecto — v1 → v2 → v3
 
