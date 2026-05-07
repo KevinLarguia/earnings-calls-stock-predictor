@@ -1,7 +1,8 @@
 # Earnings Call ML — Predicción de movimientos post-earnings
+Historia: https://www.linkedin.com/feed/update/urn:li:activity:7457869704955817985/
 
 Proyecto de machine learning que predice si una acción va a subir más del 3% en los 5 días hábiles posteriores a una earnings call, combinando features cuantitativas (precio, EPS), NLP sobre las transcripciones (FinBERT + análisis de texto) y un ensemble de modelos de gradient boosting.
-https://www.linkedin.com/feed/update/urn:li:activity:7457869704955817985/
+
 ---
 
 ## Resultados finales (v3)
